@@ -8,7 +8,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-.env
+backend/.env
 
 .idea/
 *.iml
@@ -20,3 +20,4 @@ Thumbs.db
 *.egg-info/
 dist/
 build/
+bot/config.py
