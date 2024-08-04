@@ -1,4 +1,5 @@
 import math
+import ssl
 
 from aiogram import Router, F, types
 from aiogram.filters import Command, StateFilter
@@ -10,7 +11,9 @@ import kb
 import text
 
 router = Router()
-
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 @router.message(StateFilter(None), Command("start"))
 async def start_handler(msg: Message):
@@ -20,7 +23,7 @@ async def start_handler(msg: Message):
 async def handler(msg: Message):
     async with ClientSession() as session:
         if msg.text == text.get_mes:
-            async with session.get('http://46.229.214.108:80/api/v1/messages/',) as response:
+            async with session.get('http://46.229.214.108:80/api/v1/messages/', ssl=ssl_context) as response:
                 if response.status == 204:
                     await msg.answer(text.no_content)
                 else:
@@ -46,8 +49,7 @@ async def handler(msg: Message):
                             builder.adjust(1)
                             await msg.answer("\n".join(messages) + "\n" + f"Страница {page} из {count_pages}",
                                              reply_markup=builder.as_markup())
-                    except Exception as e:
-                        await msg.answer(e)
+                    except Exception:
                         await msg.answer(text.error_text)
         else:
             payload = {
@@ -55,7 +57,7 @@ async def handler(msg: Message):
                 "content": msg.text
             }
             async with session.post('http://46.229.214.108:80/api/v1/message/', json=payload,
-                                    headers={'X-Client-IP': str(msg.from_user.id)}) as response:
+                                    headers={'X-Client-IP': str(msg.from_user.id)}, ssl=ssl_context) as response:
                 if response.status == 201:
                     await msg.answer(text.delivered)
                 else:
@@ -64,7 +66,8 @@ async def handler(msg: Message):
 @router.callback_query()
 async def next_handler(callback: types.CallbackQuery):
     async with ClientSession() as session:
-        async with session.get(f'http://46.229.214.108:80/api/v1/messages/', params={'page': int(callback.data)}) as response:
+        async with session.get(f'http://46.229.214.108:80/api/v1/messages/', params={'page': int(callback.data)},
+                               ssl=ssl_context) as response:
             try:
                 response_data = await response.json()
                 messages = []
