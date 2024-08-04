@@ -8,12 +8,17 @@ services:
     expose:
       - "27017"
 
+  redis:
+    image: redis:alpine
+    depends_on:
+      - mongo
+
   fastapi:
     build:
       context: ./backend
       dockerfile: Dockerfile
     depends_on:
-      - mongo
+      - redis
 
   nginx:
     image: nginx:latest
