@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Request
 from typing import List
+from starlette.responses import JSONResponse
 from .models import Message
 from .database import db
 
@@ -13,15 +14,23 @@ async def get_messages():
             del message["_id"]
 
     if not messages:
-        raise HTTPException(status_code=204, detail="Сообщений пока нет")
+        return JSONResponse(status_code=204, content={"detail": "Сообщений пока нет"})
 
     return messages
 
 @router.post("/api/v1/message/")
-async def create_message(message: Message):
-    new_message = message.dict()
-    db.messages.insert_one(new_message)
-    return {
-        "message": "Ваше сообщение успешно добавлено"
+async def create_message(message: Message, request: Request):
+    x_forwarded_for = request.headers.get('x-forwarded-for')
+    if x_forwarded_for:
+        client_ip = x_forwarded_for.split(",")[0]
+    else:
+        client_ip = 'Anon'
+    new_message = {
+        "author": client_ip,
+        "content": message.content
     }
-
+    try:
+        db.messages.insert_one(new_message)
+        return JSONResponse(status_code=201, content={"detail": "Успешно добавлено"})
+    except:
+        return JSONResponse(status_code=500, content={"detail": "Повторите попытку позже"})
